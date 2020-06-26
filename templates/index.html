@@ -20,14 +20,7 @@
                         <th>Name</th>
                         <th>Email</th>
                     </tr>
-                    <tbody id="authors">
-                        <!--{% for author in authors %}
-                            <tr>
-                                <th>{{ author.name }}</th>
-                                <td>{{ author.email }}</td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>-->
+                    <tbody id="authors"></tbody>
                 </table>
                 <hr><h2 class="ml-3">Entries</h2>
                 <table class="table table-sm">
@@ -38,22 +31,7 @@
                         <th>Authors</th>
                         <th></th>
                     </tr>
-                    <tbody id="entries">
-                        <!--{% for entry in entrys %}
-                            <tr>
-                                <th>{{ entry.headline }}</th>
-                                <td style="width:95px"><small>{{ entry.date }}</small></td>
-                                <td><small><small>{{ entry.body_text }}</small></small></td>
-                                <td>{% for author in entry.authors.all %}·{{ author }}<br>{% endfor %}</td>
-                                <td style="width: 100px">
-                                    <span class="fa fa-star"></span>
-                                    <span class="badge badge-secondary">{{ entry.rating }}</span>
-                                    <span class="fa fa-envelope-open"></span>
-                                    <span class="badge badge-secondary">{{ entry.number_of_comments }}</span>
-                                </td>
-                            </tr>
-                        {% endfor %}-->
-                    </tbody>
+                    <tbody id="entries"></tbody>
                 </table>
             </div>
             <div class="col-5">
@@ -86,37 +64,49 @@
     $('#text').on('keyup', text);
 
     function text(){
-        var text = $('#text').val();
+        var text = $.trim($('#text').val());
 
         $.ajax({
             data: {'text': text },
             url: "{% url 'text' %}",
-            type: 'get',
             success: function(data){
+                console.log(data)
                 authors = JSON.parse(data.authors)
                 entries = JSON.parse(data.entries)
-                console.log(authors)
-                console.log(entries)
+
                 $('#authors').html("");
                 $('#entries').html("");
+
                 for (var a in authors){
-                    author = authors[a].fields
+                    author = authors[a]
                     $('#authors').append(
                        `<tr>
-                            <th>` + author.name + `</th>
-                            <td>` + author.email + `</td>
+                            <th>` + author.pk + `</th>
+                            <td>` + author.fields.email + `</td>
                         </tr>` 
                     );
                 }
+
                 for (var r in entries){
                     entry = entries[r].fields
-                    console.log(String(entry.authors).replace(',', '<br>'))
+
+                    var datetime = new Date(entry.date);
+                    var mes = datetime.getMonth();
+                    var dia = datetime.getDate();
+                    var año = datetime.getFullYear();
+                    var horas = datetime.getHours();
+                    var minutos = datetime.getMinutes();
+
+                    entry.date = (mes > 8) ? (mes + 1) : '0' + (mes + 1)  + '/' + ((dia > 9) ? dia : '0' + dia)  + '/' + año + ' ' + 
+                                 ((horas > 9) ? horas : '0' + horas)  + ':' + ((minutos > 9) ? minutos : '0' + minutos)
+                    entry.authors = String(entry.authors).replace(',', '<br>')
+
                     $('#entries').append(
                        `<tr>
                             <th style="width:150px">` + entry.headline + `</th>
                             <td style="width:95px"><small>` + entry.date + `</small></td>
                             <td><small><small>` + entry.body_text + `</small></small></td>
-                            <td>` + String(entry.authors).replace(',', '<br>') + ` </td>
+                            <td>` + entry.authors + ` </td>
                             <td style="width: 100px">
                                 <span class="fa fa-star"></span>
                                 <span class="badge badge-secondary">` + entry.rating + `</span>
@@ -137,7 +127,6 @@
         $.ajax({
             data: {'option': option },
             url: "{% url 'option' %}",
-            type: 'get',
             success: function(data){
                 response = data.response
                 $('#list').html("");
