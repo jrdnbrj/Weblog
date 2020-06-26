@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from .models import *
 from django.http import JsonResponse
+from django.core import serializers
 
 # Create your views here.
 
@@ -9,31 +10,33 @@ def index(request):
     entrys = Entry.objects.all()
     return render(request, 'index.html', {'authors': authors, 'entrys': entrys})
 
-def ajax(request):
-    if request.is_ajax and request.method == 'POST':
-        print(request.POST['option'])
-        reportes_dic = {
-            0: default,
-            1: author_rating,
-            2: author_comment,
-        }
-        opcion = int(request.POST['option'])
-        funcion = reportes_dic[opcion]
-        return funcion(request)
-    return render(request, 'reportes/reportes.html', {})
-
-def default(request):
-    return JsonResponse(data={'response': {}}, safe=False)
-
-def author_rating(request):
-    return JsonResponse(data={'response': {}}, safe=False)
-
-def author_comment(request):
+def option(request):
     context = {}
-    for author in Author.objects.all():
-        entrys_author = author.entry_set.all()
-        entrys_author = [i.number_of_comments for i in entrys_author]
-        entrys_author = sum(entrys_author)
-        context[author.name] = entrys_author
+    if request.is_ajax and request.method == 'GET':
+        for author in Author.objects.all():
+            entrys_author = author.entry_set.all()
+            entrys_author = [i.rating for i in entrys_author]
+            if request.POST['option'] == '1':
+                context[author.name] = sum(entrys_author) / len(entrys_author)
+            elif request.POST['option'] == '2':
+                context[author.name] = sum(entrys_author)
     return JsonResponse(data={'response': context}, safe=False)
 
+def text(request):
+    context = {}
+    if request.is_ajax and request.method == 'GET':
+        text = request.GET['text']
+
+        authors_name = Author.objects.filter(name__icontains=text)
+        authors_email = Author.objects.filter(email__icontains=text)
+        authors = authors_name.union(authors_email)
+
+        entries_headline = Entry.objects.filter(headline__icontains=text)
+        entries_body_text = Entry.objects.filter(body_text__icontains=text)
+        entries_authors = Entry.objects.filter(authors__name__icontains=text)
+        entries = entries_headline.union(entries_body_text, entries_authors)
+
+        context['authors'] = serializers.serialize('json', authors)
+        context['entries'] = serializers.serialize('json', entries)
+
+    return JsonResponse(data=context, safe=False)

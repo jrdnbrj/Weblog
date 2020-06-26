@@ -20,5 +20,6 @@ from Weblog.views import *
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', index),
-    path('ajax/', ajax, name='ajax')
+    path('option/', option, name='option'),
+    path('text/', text, name='text'),
 ]
